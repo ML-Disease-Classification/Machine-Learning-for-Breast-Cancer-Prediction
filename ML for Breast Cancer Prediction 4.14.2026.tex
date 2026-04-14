@@ -1,0 +1,198 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Breast Cancer Prediction Using Machine Learning Algorithms}
+
+\author{
+\IEEEauthorblockN{Sarah Sejoro}
+\IEEEauthorblockA{\textit{Jiann-Ping Hsu College of Public Health}\\
+\textit{Georgia Southern University}\\
+Statesboro, GA, United States\\
+ss81506@georgiasouthern.edu}
+\and
+\IEEEauthorblockN{Anandhi Kandaswamy}
+\IEEEauthorblockA{\textit{Jack N. Averitt College of Graduate Studies}\\
+\textit{Georgia Southern University}\\
+Statesboro, GA, United States\\
+ak20427@georgiasouthern.edu}
+\and
+\IEEEauthorblockN{Bright Agbenu}
+\IEEEauthorblockA{\textit{Jiann-Ping Hsu College of Public Health}\\
+\textit{Georgia Southern University}\\
+Statesboro, GA, United States\\
+ba09534@georgiasouthern.edu}
+}
+
+\maketitle
+
+\begin{IEEEkeywords}
+Breast cancer, machine learning, disease classification, diagnostic prediction, feature engineering
+\end{IEEEkeywords}
+
+\section{Introduction}
+Cancer remains a major public health burden, with breast cancer representing a large share of diagnoses among women in the United States. Female breast cancer accounts for about 15.5\% of all new cancer cases in the U.S., and the National Cancer Institute estimates 316,950 new female breast cancer cases in 2025, with a 5-year relative survival of 91.7\% \cite{b1,b2}. Women face an estimated lifetime risk of about 1 in 8 ($\approx$13\%) \cite{b3}, while male breast cancer is rare but still occurs \cite{b4}. Because outcomes depend strongly on early detection and appropriate treatment, improving diagnostic accuracy and consistency is a continuing priority in both clinical practice and research. At the same time, traditional screening and diagnostic pathways can involve false positives, follow-up biopsies, and variable performance across settings, which motivates complementary decision-support approaches \cite{b5,b6}.
+
+Recent advances in digital pathology, machine learning (ML), and deep learning (DL) have expanded the toolkit for breast cancer prediction, ranging from benign versus malignant classification using structured nuclear features to imaging-driven and radiomics-based prediction tasks \cite{b7,b8,b9}. In our team project, the focus is supervised learning for breast cancer classification using a reproducible pipeline and an ensemble of strong baseline models, motivated by prior findings that performance depends as much on data preparation and validation design as it does on the choice of algorithm \cite{b10,b11}.
+
+\section{Research Questions}
+Guided by the literature and by the exploratory analysis conducted on the Wisconsin Diagnostic Breast Cancer (WDBC) dataset, this study is organized around the following research questions:
+
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+    \item Which ensemble machine learning methods improve predictive accuracy for breast cancer diagnosis using the WDBC dataset?
+    \item Do ensemble models improve classification performance relative to individual learners?
+    \item Which tumor features are consistently identified as important across model-based and post-hoc explanation methods?
+    \item To what extent do different explanation techniques agree on the features that matter most for breast cancer classification?
+\end{enumerate}
+
+\section{Methodology}
+This literature review followed a structured selection process centered on supervised learning methods for breast cancer prediction and closely related disease-classification workflows. Search terms included combinations of ``breast cancer prediction,'' ``breast cancer diagnosis,'' ``supervised learning,'' ``machine learning classification,'' ``Wisconsin Diagnostic Breast Cancer,'' ``feature selection,'' ``random forest,'' ``support vector machine,'' ``logistic regression,'' ``gradient boosting,'' ``radiomics,'' and ``digital pathology.'' Database searching emphasized PubMed/PubMed Central, ScienceDirect, and Google Scholar, with targeted retrieval from journal and repository pages when needed for dataset documentation and publication metadata \cite{b2,b12}. Articles were included if they (1) applied ML/DL to breast cancer prediction or closely related diagnostic classification tasks, (2) described the data type and modeling workflow clearly enough to interpret the approach, and (3) reported evaluation outcomes using standard metrics (e.g., accuracy, AUC, sensitivity/specificity, or related measures). Articles were excluded if they lacked methodological detail, did not address prediction/classification, or were primarily conceptual without empirical evaluation. Because our project uses structured diagnostic features rather than raw imaging, imaging-heavy studies were used mainly to contextualize broader trends and validation challenges rather than to define the project's core modeling pipeline \cite{b7,b8}. 
+
+\section{Literature Review}
+Breast cancer prediction is not a single task in the literature. It includes benign versus malignant classification from structured diagnostic features, prediction of treatment response using radiomics, prognosis modeling using time-to-event outcomes, and prediction of lymph node involvement using imaging-derived and clinicopathologic variables \cite{b14,b15,b16}. Despite these varied endpoints, a consistent theme is that supervised learning is effective when features encode clinically meaningful structure and when evaluation procedures reflect the intended use case \cite{b7,b10}.
+
+For structured, tabular breast cancer datasets, traditional supervised learners remain central. Reviews and comparative studies repeatedly highlight logistic regression, Naive Bayes, support vector machines, decision trees, random forests, and boosting methods as strong baselines, especially when paired with disciplined preprocessing and feature selection \cite{b7,b10,b9}. This framing aligns directly with the Wisconsin Diagnostic Breast Cancer (WDBC) dataset, which contains features computed from digitized fine-needle aspirate images that describe cell nuclei characteristics and supports benign/malignant classification \cite{b12}. Studies using WDBC-style settings commonly report competitive performance across multiple supervised models, reinforcing the idea that careful benchmarking is often more informative than relying on a single ``best'' algorithm \cite{b11,b18}.
+
+Within breast-cancer-specific ML research, feature engineering and feature selection repeatedly emerge as performance drivers. Work discussing nuclear feature sets emphasizes that real-valued measurements such as radius, perimeter, and concavity can support classification, and broader reviews describe feature prioritization as a practical way to reduce model complexity while preserving diagnostic signal \cite{b17,b9}. Consistent with this, La Moglia and Almustafa report that logistic regression and gradient boosting variants can achieve strong test performance in breast cancer classification settings, with performance patterns shifting depending on whether feature selection is applied \cite{b13}. Beyond tumor classification, Bruny\'e et al.\ extend the ML diagnostic frame by showing that models can predict diagnostic accuracy based on pathologists' viewing behavior during breast biopsy interpretation, reinforcing that evaluation and workflow context matter alongside raw predictive performance \cite{b19}.
+
+At the same time, several limitations recur across studies. First, results are often difficult to compare due to heterogeneous datasets, inconsistent preprocessing and feature extraction choices, and differences in reported metrics, which can inflate confidence in ``best model'' claims when pipelines are not fully documented \cite{b10,b8}. Second, external validity remains a persistent concern: models may perform well on internal splits but degrade when applied across institutions, scanners, or patient populations, which is particularly visible in radiomics and prognosis contexts \cite{b14,b15,b16}. Third, interpretability and clinical integration are frequently underdeveloped relative to performance reporting; high accuracy or AUC alone does not guarantee that a model's errors, uncertainty, or subgroup behavior are clinically acceptable \cite{b7,b8}.
+
+\section{Dataset Acquisition and Description}
+This project uses the Breast Cancer Wisconsin (Diagnostic) dataset from the UCI Machine Learning Repository \cite{b12}. The dataset contains digitized measurements extracted from fine needle aspirate (FNA) images of breast masses and has been widely used for binary classification research in medical machine learning. Its appeal for this study is twofold. First, the target variable is clinically meaningful, distinguishing benign from malignant diagnoses. Second, the predictor set consists of interpretable nucleus descriptors rather than opaque latent features, which makes the dataset appropriate for both predictive modeling and explanation-oriented analysis.
+
+The raw data used in the notebook consisted of 569 patient records, 30 real-valued predictors, one diagnosis label, and one fully empty auxiliary column that carried no analytical value. The features are grouped into mean, standard error, and worst-case measurements for radius, texture, perimeter, area, smoothness, compactness, concavity, concave points, symmetry, and fractal dimension. This structure makes the data especially suitable for comparing linear, tree-based, and ensemble learners under a common preprocessing pipeline.
+
+\begin{table}[htbp]
+\caption{Summary of the WDBC Dataset}
+\label{tab:wdbc_summary}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{>{\raggedright\arraybackslash}p{0.30\columnwidth}X}
+\toprule
+\textbf{Characteristic} & \textbf{Description} \\
+\midrule
+Source & UCI Machine Learning Repository, Breast Cancer Wisconsin (Diagnostic) \cite{b12} \\
+Instances & 569 patient records \\
+Predictor variables & 30 real-valued features \\
+Target variable & Diagnosis: benign (B) or malignant (M) \\
+Feature families & Mean, standard error, and worst-value measurements \\
+Measurement domains & Radius, texture, perimeter, area, smoothness, compactness, concavity, concave points, symmetry, and fractal dimension \\
+Raw data issue & One fully empty column (\texttt{Unnamed: 32}) removed during cleaning \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Data Wrangling and Preprocessing}
+The preprocessing workflow was designed to preserve clinical information while producing a model-ready feature matrix. Because diagnostic datasets are often small, aggressive row deletion can remove rare but meaningful malignant cases. For that reason, the notebook prioritized conservative cleaning, explicit outlier analysis, and robust scaling rather than extensive record removal.
+
+\subsection{Missingness, Data Types, and Encoding}
+Initial inspection showed that the only missingness in the raw table came from a completely empty column labeled \texttt{Unnamed: 32}. After removing that column, no additional missing values were present. As a result, no statistical imputation was required. All biomedical predictors were already stored as numeric variables, while the diagnosis label was maintained as a categorical variable for exploratory analysis and then encoded as a binary target for downstream supervised learning. Duplicate checking confirmed that all 569 patient records were unique and were retained in the cleaned dataset.
+
+\subsection{Outlier Detection and Treatment}
+Outliers were evaluated using both the interquartile range (IQR) rule and the Z-score method. The two methods identified unusually large values across several nucleus-size and boundary-shape variables, especially among area- and perimeter-related measures. The standard error variable \texttt{area2} exhibited the highest IQR-based outlier count (65 observations), followed by \texttt{perimeter2} and \texttt{radius2} with 38 observations each. These patterns are plausible in a biomedical context because malignant tumors can legitimately produce extreme measurements. Consequently, observations were not deleted. Instead, numeric predictors were winsorized using IQR-based limits, which reduced the influence of extreme values while preserving the full patient sample.
+
+\begin{table}[htbp]
+\caption{Preprocessing Decisions Applied to the Analytical Dataset}
+\label{tab:preprocessing_summary}
+\centering
+\footnotesize
+\begin{tabularx}{\columnwidth}{>{\raggedright\arraybackslash}p{0.28\columnwidth}X}
+\toprule
+\textbf{Step} & \textbf{Decision} \\
+\midrule
+Missing-value handling & Removed the fully empty \texttt{Unnamed: 32} column; no further imputation was necessary \\
+Type conversion & Kept predictors numeric; treated diagnosis as categorical for EDA and encoded it as a binary target for modeling \\
+Duplicate check & Retained all 569 observations; no duplicate patient records were found \\
+Outlier detection & Screened predictors using both IQR and Z-score rules \\
+Outlier treatment & Retained all cases and winsorized numeric predictors using IQR-based caps \\
+Scaling & Applied \texttt{RobustScaler} to final modeling features \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Feature Engineering and Scaling}
+The notebook also incorporated feature engineering to support both descriptive analysis and later model development. Banded versions of selected continuous variables, particularly radius- and texture-related features, were used to visualize how diagnosis rates shift across ordered ranges. In addition, interaction- and ratio-style representations were created from core tumor measurements to enrich the feature space without discarding interpretability. For scaling, \texttt{RobustScaler} was chosen because it uses the median and interquartile range instead of the mean and standard deviation. This makes it more stable than standard normalization approaches when some predictors remain skewed even after outlier capping.
+
+\section{Exploratory Data Analysis Findings}
+Exploratory data analysis (EDA) was used to characterize the cleaned dataset and identify patterns likely to affect downstream model performance. The resulting profiles were consistent with the literature: tumor size, boundary irregularity, and worst-case measurements appeared to carry strong discriminatory signal.
+
+\subsection{Distributional Patterns and Class Balance}
+The diagnosis distribution showed moderate imbalance, with 62.74\% benign cases and 37.26\% malignant cases. Distribution plots for key numeric variables further showed that malignant tumors tend to occupy larger values on features such as mean radius and worst area. Texture-related variables also contributed signal, although their distributions overlapped more heavily across classes than the size-based features. These findings suggest that some predictors may be individually discriminative, while others are more useful when modeled jointly.
+
+\subsection{Correlation Structure}
+Correlation analysis revealed substantial redundancy among size-related measurements. Radius, perimeter, and area moved together very strongly, with the single strongest pairwise raw correlation observed between \texttt{radius1} and \texttt{perimeter1} ($r = 0.9977$). From a modeling standpoint, this matters because highly collinear predictors can destabilize coefficient estimates in linear methods while providing overlapping information to tree-based models. The heatmap results therefore support later consideration of feature selection, regularization, or dimensionality reduction.
+
+\subsection{Multivariate Separation}
+The data showed that malignant cases tended to cluster in regions where both mean radius and mean or worst area were comparatively large. Principal component analysis (PCA) further demonstrated that the first two principal components explained 63.64\% of the total variance while still preserving visible class separation. Although overlap remained between classes, the overall structure indicates that the WDBC feature space contains a strong predictive signal and is suitable for comparing both linear and nonlinear classifiers.
+
+\section{Implications for Model Development}
+The cleaned and explored dataset provides a defensible foundation for the next modeling phase of the project. The absence of substantive missingness reduces the need for aggressive imputation, while the retained but capped outliers preserve clinically meaningful variation that may help distinguish malignant tumors. At the same time, the strong collinearity among radius-, perimeter-, and area-related features suggests that simple accuracy comparisons alone will be insufficient when evaluating models.
+
+These results motivate a model-comparison framework that includes both single learners and ensembles. In practical terms, the next stage should compare logistic regression, support vector machines, random forests, gradient boosting methods, and voting-based ensemble models using train-test separation and cross-validation. Performance reporting should emphasize precision, recall, F1-score, ROC-AUC, and confusion-matrix patterns in addition to accuracy. For interpretability, feature-importance rankings and post-hoc explanation techniques can be compared to determine whether different methods identify stable biomarkers consistently across models.
+
+\section{Synthesis and Conclusion}
+Across the reviewed literature, the strongest consensus is that breast cancer prediction benefits most from transparent pipelines, clinically sensible feature representations, and evaluation designs that match the endpoint being predicted. Traditional supervised learning models and ensembles remain strong choices for structured feature sets like WDBC, while radiomics and prognosis studies illustrate that supervised learners can extend to more complex prediction targets when feature extraction and validation are carefully handled \cite{b11,b18,b14,b15}. Comparative benchmarking work also reinforces that no single classifier is universally best across medical datasets, which supports a model-comparison approach rather than a one-model narrative \cite{b10}.
+
+The most relevant gaps for our project are practical and reproducible: inconsistent reporting of preprocessing and feature selection decisions, limited attention to class-sensitive metrics beyond accuracy, and limited interpretability and error analysis to explain what drives model performance and where models fail \cite{b7,b8}. Our project addresses these gaps by implementing a reproducible supervised-learning workflow on the WDBC dataset, comparing multiple baseline classifiers and an ensemble, using a clearly separated validation and test strategy, and reporting class-sensitive metrics alongside confusion-pattern error analysis and interpretable outputs such as feature importance for clinically meaningful discussion \cite{b12,b11,b18}. 
+
+The empirical data work presented here strengthens that argument. The dataset proved to be clean after removal of one empty column, the diagnosis classes showed meaningful but manageable imbalance, and the most informative predictors were concentrated in tumor size and boundary-shape measurements. Together, the preprocessing and EDA results justify a modeling strategy that is careful about leakage, explicit about outlier handling, and attentive to interpretability alongside prediction quality.
+
+\section*{}
+\begin{thebibliography}{00}
+
+\bibitem{b1} J. Makki, ``Diversity of breast carcinoma: Histological subtypes and clinical relevance,'' \emph{Clinical Medicine Insights: Pathology}, vol. 8, pp. 23--31, 2015, doi: 10.4137/CPath.S31563.
+
+\bibitem{b2} National Cancer Institute, ``Cancer Stat Facts: Female Breast Cancer,'' SEER, 2025. [Online]. Available: \url{https://seer.cancer.gov/statfacts/html/breast.html}. Accessed: Feb. 20, 2026.
+
+\bibitem{b3} American Cancer Society, ``Breast Cancer Statistics: How Common Is Breast Cancer?,'' 2026. [Online]. Available: \url{https://www.cancer.org/cancer/types/breast-cancer/about/how-common-is-breast-cancer.html}. Accessed: Feb. 20, 2026.
+
+\bibitem{b4} American Cancer Society, ``Key Statistics for Breast Cancer in Men,'' 2026. [Online]. Available: \url{https://www.cancer.org/cancer/types/breast-cancer-in-men/key-statistics.html}. Accessed: Feb. 20, 2026.
+
+\bibitem{b5} P. Jaglan, R. Dass, and M. Duhan, ``Breast cancer detection techniques: Issues and challenges,'' \emph{J. Institution of Engineers (India): Series B}, vol. 100, no. 4, pp. 379--386, 2019, doi: 10.1007/s40031-019-00391-2.
+
+\bibitem{b6} C. Shang and D. Xu, ``Epidemiology of breast cancer,'' \emph{Oncologie}, vol. 24, no. 4, pp. 649--663, 2022, doi: 10.32604/oncologie.2022.027640.
+
+\bibitem{b7} M. M. Ahsan, S. A. Luna, and Z. Siddique, ``Machine-learning-based disease diagnosis: A comprehensive review,'' \emph{Healthcare}, vol. 10, no. 3, art. 541, 2022, doi: 10.3390/healthcare10030541.
+
+\bibitem{b8} A. Jafari, ``Machine-learning methods in detecting breast cancer and related therapeutic issues: A review,'' \emph{Computer Methods in Biomechanics and Biomedical Engineering: Imaging \& Visualization}, vol. 12, no. 1, art. 2299093, 2024, doi: 10.1080/21681163.2023.2299093.
+
+\bibitem{b9} W. Yue, Z. Wang, H. Chen, A. Payne, and X. Liu, ``Machine learning with applications in breast cancer diagnosis and prognosis,'' \emph{Designs}, vol. 2, no. 2, art. 13, 2018, doi: 10.3390/designs2020013.
+
+\bibitem{b10} M. A. Moreno-Ibarra, Y. Villuendas-Rey, D. L\'opez-S\'anchez, and J. H. Arroyo-N\'u\~nez, ``Classification of diseases using machine learning algorithms: A comparative study,'' \emph{Mathematics}, vol. 9, no. 15, art. 1817, 2021, doi: 10.3390/math9151817.
+
+\bibitem{b11} N. Al-Azzam and I. Shatnawi, ``Comparing supervised and semi-supervised machine learning models on diagnosing breast cancer,'' \emph{Annals of Medicine and Surgery}, vol. 62, pp. 53--64, 2021, doi: 10.1016/j.amsu.2020.12.043.
+
+\bibitem{b12} W. Wolberg, O. Mangasarian, N. Street, and W. Street, ``Breast Cancer Wisconsin (Diagnostic)'' [Dataset], UCI Machine Learning Repository, 1993, doi: 10.24432/C5DW2B.
+
+\bibitem{b13} A. La Moglia and K. M. Mohamad Almustafa, ``Breast cancer prediction using machine learning classification algorithms,'' \emph{Intelligence-Based Medicine}, vol. 11, art. 100193, 2025, doi: 10.1016/j.ibmed.2024.100193.
+
+\bibitem{b14} X. Li, C. Li, H. Wang, L. Jiang, and M. Chen, ``Comparison of radiomics-based machine-learning classifiers for the pretreatment prediction of pathologic complete response to neoadjuvant therapy in breast cancer,'' \emph{PeerJ}, vol. 12, e17683, 2024, doi: 10.7717/peerj.17683.
+
+\bibitem{b15} J. Xiao, M. Mo, Z. Wang, C. Zhou, J. Shen, J. Yuan, Y. He, and Y. Zheng, ``The application and comparison of machine learning models for the prediction of breast cancer prognosis: Retrospective cohort study,'' \emph{JMIR Medical Informatics}, vol. 10, no. 2, e33440, 2022, doi: 10.2196/33440.
+
+\bibitem{b16} J. Yao, W. Zhou, S. Xu, X. Jia, J. Zhou, X. Chen, and W. Zhan, ``Machine learning-based breast tumor ultrasound radiomics for pre-operative prediction of axillary sentinel lymph node metastasis burden in early-stage invasive breast cancer,'' \emph{Ultrasound in Medicine \& Biology}, vol. 50, no. 2, pp. 229--236, 2024, doi: 10.1016/j.ultrasmedbio.2023.10.004.
+
+\bibitem{b17} C. G. Yedjou, S. S. Tchounwou, R. A. Al\'o, R. Elhag, B. K. Mochona, and L. Latinwo, ``Application of machine learning algorithms in breast cancer diagnosis and classification,'' \emph{BioMed Research International}, 2021, art. 9983652.
+
+\bibitem{b18} S. Zhou, C. Hu, S. Wei, and X. Yan, ``Breast cancer prediction based on multiple machine learning algorithms,'' \emph{Technology in Cancer Research \& Treatment}, vol. 23, 2024, doi: 10.1177/15330338241234791.
+
+\bibitem{b19} T. T. Bruny\'e, K. Booth, D. Hendel, K. F. Kerr, H. Shucard, D. L. Weaver, and J. G. Elmore, ``Machine learning classification of diagnostic accuracy in pathologists interpreting breast biopsies,'' \emph{Journal of the American Medical Informatics Association}, vol. 31, no. 3, pp. 552--562, 2024, doi: 10.1093/jamia/ocad232.
+
+\end{thebibliography}
+
+\end{document}
