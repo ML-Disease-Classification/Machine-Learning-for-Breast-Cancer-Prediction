@@ -1,0 +1,298 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage{setspace}
+
+\begin{document}
+
+\title{Breast Cancer Classification Using a Stacking Ensemble Model with Explainable AI-Based Feature Importance Analysis}
+
+\author{
+\IEEEauthorblockN{Bright Agbenu}
+\IEEEauthorblockA{\textit{Jiann-Ping Hsu College of Public Health}\\
+\textit{Georgia Southern University}\\
+Statesboro, GA, United States\\
+ba09534@georgiasouthern.edu}
+\and
+\IEEEauthorblockN{Sarah Sejoro}
+\IEEEauthorblockA{\textit{Jiann-Ping Hsu College of Public Health}\\
+\textit{Georgia Southern University}\\
+Statesboro, GA, United States\\
+ss81506@georgiasouthern.edu}
+}
+
+\maketitle
+
+\begin{abstract}
+Breast cancer remains a major public health concern, and timely diagnosis continues to be central to reducing avoidable morbidity and mortality. This study examined whether a stacking ensemble model can improve breast cancer classification performance while still supporting interpretable feature analysis. Using the Wisconsin Diagnostic Breast Cancer dataset, we implemented a reproducible machine learning pipeline that included exploratory data analysis, a 70/30 train--test split, randomized hyperparameter tuning on the train set, and manual stacking with out-of-fold meta-features to reduce information leakage. Five tuned base learners were evaluated---logistic regression, random forest, k-nearest neighbors, support vector classification, and XGBoost---alongside a regularized logistic regression meta-learner. On the held-out 30\% test set, the stacking ensemble achieved the strongest overall performance (accuracy = 0.9825, precision = 0.9841, recall = 0.9688, F1-score = 0.9764, F2-score = 0.9718). The confusion matrix showed 62 true positives, 106 true negatives, 1 false positive, and 2 false negatives. Receiver operating characteristic and precision--recall analyses also indicated excellent discrimination. To move beyond predictive accuracy alone, the study compared feature rankings across model-based and post hoc explanation methods. Across these methods, worst radius, worst area, worst perimeter, and worst concave points repeatedly emerged as stable diagnostic features, whereas area error, radius error, perimeter error, and fractal dimension error were the least stable. The findings suggest that a stacking ensemble can improve classification performance on structured breast cancer data while still allowing a coherent interpretation of which features drive model decisions.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Breast cancer, stacking ensemble, classification, model interpretation, feature importance, machine learning, explainable AI
+\end{IEEEkeywords}
+
+\section{Introduction}
+Breast cancer remains one of the most consequential cancer burdens affecting women. In the United States, official 2026 estimates project 321,910 new invasive cases in women and 42,670 breast cancer deaths overall in women and men combined, and approximately 1 in 8 women will be diagnosed with invasive breast cancer during their lifetime \cite{b1,b2}. These figures reinforce the continued need for accurate and timely diagnostic support.
+
+Machine learning methods have become increasingly common in breast cancer research because they can model complex relationships among tumor features and potentially improve decision support for diagnosis, prognosis, and risk stratification. Recent reviews and comparative studies show that no single algorithm performs best in every setting, and that preprocessing decisions, validation strategy, and the quality of feature information often shape performance as much as the choice of classifier itself \cite{b3,b4,b5,b6,b12,b13,b14}. There is also growing interest in whether high-performing models can provide explanations that are stable enough to support scientific interpretation and clinical trust \cite{b7,b17,b18,b20}.
+
+\section{Problem Statement}
+The present study addresses a practical problem in breast cancer prediction research: high predictive accuracy alone is not enough if the resulting feature explanations are unstable across models. This project evaluates both predictive performance and explanation consistency within a reproducible classification framework built on the Wisconsin Diagnostic Breast Cancer (WDBC) dataset \cite{b8}. The study addresses the following research questions:
+\begin{enumerate}[leftmargin=*, itemsep=1pt]
+    \item Can a stacking ensemble improve predictive accuracy and overall diagnostic performance compared with individual machine learning models for breast cancer classification?
+    \item Which individual and ensemble models perform most strongly on the WDBC dataset when evaluated with classification and threshold-based metrics?
+    \item Which tumor features are identified most consistently as important across model-specific and post hoc explanation methods?
+    \item To what extent do multiple explanation approaches converge on a stable set of diagnostically meaningful features?
+\end{enumerate}
+
+\section{Related Work}
+Recent breast cancer prediction research shows strong interest in comparative modeling rather than dependence on a single classifier. Al-Azzam and Shatnawi (2021) compared supervised and semi-supervised methods on the WDBC dataset and reported that k-nearest neighbors performed best in the supervised setting, while logistic regression performed best in the semi-supervised setting \cite{b3}. Rabiei et al. (2022) also showed that conventional machine learning approaches can remain highly competitive on tabular breast cancer data when feature preparation and validation are handled carefully \cite{b12}. Uddin et al. (2023) reached a similar conclusion in a larger algorithm comparison, where a voting classifier emerged as the strongest performer among eleven candidate models \cite{b13}.
+
+More recent studies continue to support comparative evaluation designs. Islam et al. (2024) compared five supervised learners on a primary clinical dataset and used SHAP analysis to interpret predictions, showing that explainability can be integrated directly into predictive modeling rather than added as an afterthought \cite{b14}. Zhou et al. (2024) reported that an AdaBoost--logistic combination outperformed the other candidate models in their breast cancer prediction study \cite{b9}. La Moglia and Almustafa (2025) likewise found that model rankings could change after feature selection, showing that preprocessing decisions can materially alter which algorithm appears best \cite{b6}. These studies support the use of multiple strong baselines rather than assuming that one model family will dominate across datasets.
+
+The literature also shows that prediction tasks in breast cancer are heterogeneous. Xiao et al. (2022) studied prognosis rather than simple benign--malignant classification and found that random survival forest slightly outperformed Cox and support vector machine survival models \cite{b10}. Javanmard et al. (2025) later synthesized this survival-prediction literature and concluded that machine learning models show promise, but many studies still depend too heavily on internal validation \cite{b19}. These findings matter because algorithm performance is shaped not only by the classifier itself, but also by the endpoint being predicted, the quality of the data, and the rigor of the validation design.
+
+Another major theme in recent work is interpretability. Ghasemi et al. (2024) emphasized that explanation methods in breast cancer research are growing rapidly, but that evaluation remains inconsistent across studies \cite{b7}. Gurmessa and Jimma (2024) specifically reviewed explainable machine learning for mammography and ultrasound-based breast cancer diagnosis and found that only a small number of studies evaluated user trust or human confidence in the explanation process \cite{b17}. Abdullakutty et al. (2024) similarly argued that multi-modal and explainable approaches are receiving increasing attention, but that stronger clinical grounding and clearer evaluation frameworks are still needed \cite{b18}. Rezazadeh et al. (2022) provided a concrete example of this direction by building an explainable ensemble model for ultrasound-based diagnosis that retained strong predictive performance while supporting interpretable decision paths \cite{b20}.
+
+Another point to note is the growing use of radiomics-based machine learning for clinically relevant prediction tasks. Li et al. (2024) compared multiple radiomics-based classifiers for predicting pathologic complete response after neoadjuvant therapy and found that LightGBM performed best among the evaluated models \cite{b15}. Yao et al. (2024) showed that machine-learning-based ultrasound radiomics could predict axillary sentinel lymph node metastasis burden with high accuracy, especially when support vector machines were used \cite{b16}. Although these studies are based on imaging-derived rather than tabular features, they reinforce the broader point that breast cancer modeling increasingly involves comparing multiple learners, validating with careful train--test separation, and interpreting the clinical meaning of predictive features.
+
+Altogether, studies point to several issues that are important for the present analysis. High-quality breast cancer prediction depends on a well-structured modeling workflow, not simply on selecting a more advanced algorithm. The literature also indicates that combined modeling approaches can strengthen classification performance when they are paired with clear and clinically meaningful interpretation. Repeated agreement across multiple explanation methods may offer more reliable evidence of feature importance than any single ranking on its own.
+
+\begin{table*}[htbp]
+\caption{Recent peer-reviewed studies relevant to breast cancer machine learning prediction and the models they evaluated}
+\label{tab:lit_summary}
+\centering
+\footnotesize
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{2.7cm} >{\raggedright\arraybackslash}p{2.8cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+\toprule
+\textbf{Study} & \textbf{Prediction task / data context} & \textbf{Models used} & \textbf{Key takeaway} \\
+\midrule
+Al-Azzam \& Shatnawi (2021) \cite{b3} & WDBC benign--malignant diagnosis & Logistic regression, Gaussian Naive Bayes, linear SVM, RBF SVM, decision tree, random forest, XGBoost, gradient boosting, k-nearest neighbors; supervised and semi-supervised settings & K-nearest neighbors led the supervised setting; logistic regression led the semi-supervised setting. \\
+Rabiei et al. (2022) \cite{b12} & Breast cancer diagnosis using structured clinical/tabular data & Decision tree, random forest, SVM, k-nearest neighbors, logistic regression and related classifiers & Demonstrated that conventional machine learning models remain strong when feature preparation is handled well. \\
+Uddin et al. (2023) \cite{b13} & WBCD benign--malignant classification & SVM, random forest, k-nearest neighbors, decision tree, Naive Bayes, logistic regression, AdaBoost, gradient boosting, MLP, NCC, voting classifier & Voting classifier produced the strongest overall accuracy among eleven models. \\
+Islam et al. (2024) \cite{b14} & Clinical breast cancer classification with explanation analysis & Decision tree, random forest, logistic regression, Naive Bayes, XGBoost with SHAP & Showed that model comparison and feature explanation can be integrated in a single workflow. \\
+Li et al. (2024) \cite{b15} & MRI radiomics-based prediction of pathologic complete response & Logistic regression, SVM, random forest, XGBoost, LightGBM and related radiomics classifiers & LightGBM-based radiomics model performed best in predicting pathologic complete response. \\
+Yao et al. (2024) \cite{b16} & Ultrasound radiomics prediction of sentinel lymph node burden & LDA, SVM, random forest, decision tree & SVM achieved the strongest predictive performance in the test set. \\
+Zhou et al. (2024) \cite{b9} & Breast cancer prediction using tabular features & Decision tree, stochastic gradient descent, random forest, SVM, logistic regression, AdaBoost--logistic & AdaBoost--logistic achieved the highest reported accuracy among the compared models. \\
+La Moglia \& Almustafa (2025) \cite{b6} & Breast cancer classification with tabular features & Eight machine learning classifiers, including logistic regression and boosted-tree approaches & Model rankings changed after feature selection, showing that preprocessing decisions can alter the apparent best model. \\
+Javanmard et al. (2025) \cite{b19} & Systematic review and meta-analysis of survival prediction studies & Traditional ML and deep learning survival-prediction models & Reported promising performance overall, but highlighted limited external validation and weak generalizability. \\
+\bottomrule
+\end{tabularx}
+\end{table*}
+
+\section{Dataset and Preprocessing}
+This study used the Breast Cancer Wisconsin (Diagnostic) dataset from the UCI Machine Learning Repository \cite{b8}. The dataset contains 569 observations and 30 real-valued predictors derived from digitized fine needle aspirate images of breast masses. The outcome variable is binary, distinguishing benign from malignant cases. Because the predictor set is structured and clinically interpretable, the dataset is well suited for comparing linear, distance-based, tree-based, boosting, and ensemble approaches in a controlled setting.
+
+The predictors are grouped into mean, standard error, and worst-case measurements for radius, texture, perimeter, area, smoothness, compactness, concavity, concave points, symmetry, and fractal dimension. This feature design is useful because it captures both central tendency and more extreme morphological properties of tumor cell nuclei.
+
+Initial inspection showed that the dataset was clean and analytically manageable. The predictor variables used for modeling did not contain substantive missingness, which reduced the need for imputation and allowed the analysis to focus on scaling, correlation, and model comparison. The class distribution showed moderate imbalance, with benign cases more common than malignant cases, but not to the extent that ordinary stratified validation became unworkable. This distribution supports the use of class-sensitive metrics such as recall, F1-score, F2-score, ROC-AUC, and precision--recall curves.
+
+Exploratory analysis also showed that the features were not on a common scale, which justified the use of \texttt{StandardScaler} inside the pipelines for logistic regression, k-nearest neighbors, and support vector classification. Correlation analysis further showed strong redundancy among several size-related and boundary-related variables, especially those involving radius, perimeter, area, and concave points. From a modeling perspective, this is useful because it indicates that a strong signal is present, but it also suggests that feature rankings may differ across models that handle correlation differently.
+
+The final preprocessing workflow used a stratified 70/30 split to create a development set and an untouched held-out test set. All hyperparameter tuning, fold-based validation, and stacking operations were confined to the 70\% development data. This separation was important because it reduced the risk of information leakage and allowed the final 30\% test set to serve as a clean benchmark for out-of-sample performance.
+
+\section{Methodology}
+This study used a structured machine learning workflow designed to separate model development from final testing. The feature matrix $X$ and binary target $y$ were defined from the WDBC dataset \cite{b8}, where malignant cases were treated as the positive class throughout evaluation. The full dataset was divided using a stratified 70/30 split, producing a 70\% development set and a 30\% untouched test set. All hyperparameter tuning and cross-validation were restricted to the development set.
+
+For scale-sensitive algorithms, preprocessing was embedded inside model pipelines so that scaling was learned only from training folds. Hyperparameter tuning was performed independently for logistic regression, random forest, k-nearest neighbors, support vector classification, and XGBoost using \texttt{RandomizedSearchCV} with five-fold stratified cross-validation and ROC-AUC as the tuning metric. This design was chosen because recent breast cancer studies have shown that model rankings can change when preprocessing and tuning strategies change \cite{b6,b9,b12,b13}.
+
+After tuning, a manual stacking procedure was implemented on the development set. Out-of-fold probabilities from the tuned base learners were used to construct meta-features, and an L2-regularized logistic regression model was trained as the meta-learner. The tuned base learners were then refit on the full 70\% development set, and their predicted probabilities on the 30\% test set were passed to the meta-learner to generate final stacking predictions. Logistic regression was selected as the meta-learner because it provides a stable and interpretable way to combine correlated probability outputs from heterogeneous base learners.
+
+The choice of base learners were motivated by both predictive and interpretive considerations. Logistic regression, random forest, k-nearest neighbors, support vector classification, and XGBoost represent different model families and therefore provide a useful basis for ensemble diversity. Model performance was evaluated with accuracy, precision, recall, F1-score, and F2-score. ROC-AUC and average precision were also examined to assess threshold-sensitive performance. Cross-validation results were first summarized on the 70\% development set, and final performance was then reported on the untouched 30\% test set. Feature importance analyses involved impurity-based importance, model coefficients, permutation-based importance, SHAP-based rankings, and agreement patterns across methods to determine whether a stable core set of diagnostic features could be identified. The final machine learning workflow is shown in Figure~\ref{fig:workflow_diagram} below.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{new pipeline.png}
+    \caption{Machine learning workflow: Final framework diagram showing data preparation, tuning, manual stacking, and evaluation}
+    \label{fig:workflow_diagram}
+\end{figure}
+
+\section{Results}
+\subsection{Cross-validation performance on the development set}
+After hyperparameter tuning, the stacking ensemble achieved the strongest average cross-validation performance on the 70\% development set. It produced an accuracy of 0.9874 $\pm$ 0.0113, precision of 0.9931 $\pm$ 0.0138, recall of 0.9731 $\pm$ 0.0250, F1-score of 0.9828 $\pm$ 0.0154, and F2-score of 0.9769 $\pm$ 0.0208. Among the individual models, logistic regression also performed strongly, followed by SVC, XGBoost, random forest, and k-nearest neighbors.
+
+These development-stage results suggest that the base learners already captured a strong signal, but the stacking design improved the balance between sensitivity and precision by combining their probability outputs rather than relying on one decision rule alone, as shown in Figure~\ref{fig:cross_val}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{CV.png}
+    \caption{Cross-validation model performance on the 70\% development set}
+    \label{fig:cross_val}
+\end{figure}
+
+\subsection{Held-out test performance}
+The final evaluation was conducted on the untouched 30\% test set. As reported in Table~\ref{tab:test_results}, the stacking ensemble again produced the strongest overall performance, with accuracy = 0.9825, precision = 0.9841, recall = 0.9688, F1-score = 0.9764, and F2-score = 0.9718. Logistic regression was the strongest individual learner on the held-out set, followed by random forest and SVC. K-nearest neighbors and XGBoost remained competitive but were slightly weaker on recall and F2-score.
+
+\begin{table}[H]
+\caption{Final model performance on the held-out 30\% test set}
+\label{tab:test_results}
+\centering
+\footnotesize
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{F2} \\
+\midrule
+Logistic Regression & 0.9708 & 0.9836 & 0.9375 & 0.9600 & 0.9464 \\
+Random Forest & 0.9649 & 0.9677 & 0.9375 & 0.9524 & 0.9434 \\
+K-Nearest Neighbors & 0.9415 & 0.9821 & 0.8594 & 0.9167 & 0.8814 \\
+SVC & 0.9649 & 0.9833 & 0.9219 & 0.9516 & 0.9335 \\
+XGBoost & 0.9415 & 0.9355 & 0.9062 & 0.9206 & 0.9119 \\
+Stacking Ensemble & 0.9825 & 0.9841 & 0.9688 & 0.9764 & 0.9718 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Confusion matrix findings}
+The confusion matrices in Figure~\ref{fig:confusion_matrices} showed that the stacking ensemble made the fewest clinically costly errors overall. For malignant cases treated as the positive class, the stacking model produced 62 true positives, 2 false negatives, 1 false positive, and 106 true negatives on the held-out test set. This pattern is especially important because false negatives represent malignant tumors incorrectly labeled as benign.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{confusion matrix.png}
+    \caption{Confusion matrices for all models on the held-out 30\% test set}
+    \label{fig:confusion_matrices}
+\end{figure}
+
+\subsection{ROC-AUC and precision--recall performance}
+All models demonstrated excellent discrimination on the held-out test set. ROC-AUC values were above 0.98 for every model, indicating that malignant and benign cases were separated very effectively across thresholds. Random forest and the stacking ensemble reached ROC-AUC values of approximately 0.991, while logistic regression followed closely at 0.989.
+
+The precision--recall curves in Figure~\ref{fig:roc_pr} told a similar story. The stacking ensemble achieved the strongest overall precision--recall behavior with average precision of approximately 0.990, indicating that it sustained a strong balance between identifying malignant cases and limiting false alarms. Logistic regression also performed strongly, with average precision around 0.988.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{Precision-Recall.png}
+    \caption{Precision-Recall curves}
+    \label{fig:roc_pr}
+\end{figure}
+
+\subsection{Feature interpretation and agreement results}
+The feature interpretation analyses showed that feature importance was partly model-dependent, but certain variables emerged repeatedly. As shown in Figure~\ref{fig:shap_summary}, the ensemble-oriented SHAP summary ranked worst perimeter, worst area, mean concave points, and worst radius among the most influential contributors. Random forest and XGBoost importance patterns emphasized worst area, worst concave points, and worst radius. Logistic regression coefficients emphasized worst texture, worst concave points, and worst radius as features associated with malignant classification. K-nearest neighbors permutation importance emphasized worst texture, worst radius, and worst smoothness.
+
+Most importantly, the agreement analysis suggested that worst concave points and worst radius were the most stable features across explanation approaches, while worst area and worst perimeter also appeared repeatedly across methods. Figure~\ref{fig:corr} shows the feature-correlation patterns across explanation methods, and Figure~\ref{fig:frature_consensus} summarizes how often the most important features reappeared across methods. This supports the idea that explanation agreement can be more informative than any single model-specific ranking.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{shap_summary_plot.png}
+    \caption{ XAI-SHAP Summary Plot of the prediction features in the stacking ensemble model}
+    \label{fig:shap_summary}
+\end{figure}
+
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{Correlation Plots.png}
+    \caption{ Model-Based and XAI-SHAP global correlation plots for all models on the held-out set}
+    \label{fig:corr}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\columnwidth]{feature_concensus.png}
+    \caption{Feature consensus summary}
+    \label{fig:frature_consensus}
+\end{figure}
+
+\begin{table}[H]
+\caption{Features with the highest absolute percent difference (disagreement) on the held-out 30\% test set}
+\label{tab:disagreement}
+\centering
+\footnotesize
+\begin{tabular}{lc}
+\toprule
+\textbf{Feature} & \textbf{Absolute \% Difference} \\
+\midrule
+Area Error & 29.6815 \\
+Radius Error & 24.6096 \\
+Perimeter Error & 21.8219 \\
+Fractal Dimension Error & 21.5451 \\
+Smoothness Error & 17.7098 \\
+Symmetry Error & 14.6874 \\
+Mean Concavity & 13.5913 \\
+Mean Concave Points & 13.4032 \\
+Worst Concavity & 13.3440 \\
+Worst Texture & 10.5054 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\newpage
+\section{Discussion}
+The stacking ensemble improved overall predictive performance relative to the individual learners, especially on the held-out test set where it produced the best accuracy, recall, F1-score, and F2-score. This suggests that the ensemble benefited from combining classifiers that make different kinds of errors. Logistic regression was a particularly strong individual learner, which is notable because it shows that simpler models can remain highly competitive on structured biomedical data when preprocessing is handled well.
+
+Important features were not identical across all methods, which is expected because coefficient-based, impurity-based, permutation-based, and SHAP-based approaches each capture a different view of model behavior. However, the repeated appearance of worst radius, worst area, worst perimeter, and worst concave points suggests that a small core group of morphologic features is consistently associated with malignant classification. This pattern strengthens confidence that the ensemble is not relying on unstable or arbitrary signals.
+
+These findings are broadly consistent with recent studies showing that comparative workflows and explanation-aware evaluation can strengthen breast cancer modeling. Prior classification studies have shown that the apparent ``best'' model often changes with preprocessing, tuning, or feature selection \cite{b3,b6,b9,b12,b13,b14}. Our results align with that literature, but they also suggest that a leakage-aware stacking approach can still produce measurable gains over strong individual baselines. Similarly, recent explainability-focused reviews argue that explanation quality should be evaluated more carefully in breast cancer research \cite{b7,b17,b18}. The present results support that concern: no single explanation method produced a complete picture, but agreement across methods provided a more stable basis for interpretation.
+
+The study also highlights a practical point about trustworthy modeling. Strong performance metrics are useful, but they are not enough on their own. In medical prediction, a model that performs well while also producing reasonably stable feature explanations is more useful than one that performs well but offers no coherent account of its decisions. Our findings therefore support a combined evaluation strategy that includes both predictive metrics and agreement-oriented interpretation.
+
+There are also important limitations. First, the analysis used a relatively small and highly structured benchmark dataset. This is useful for controlled comparison, but it limits generalizability to broader clinical settings. Second, the study focused on one dataset and one binary classification task rather than external validation across institutions or imaging pipelines. Third, explanation consistency in this paper is still based on post hoc comparison rather than formal clinical validation of biomarkers. Finally, although the ensemble performed strongly on the held-out split, broader clinical translation would require external validation, calibration analysis, and evaluation on data sources beyond WDBC.
+
+The implications are therefore practical rather than definitive. The study shows that ensemble learning and explanation comparison can work together in a coherent breast cancer workflow, but stronger clinical conclusions would require larger, externally validated data. In future applied studies, consensus across explanation methods may be especially useful as a screening tool for identifying candidate biomarkers that deserve closer clinical investigation.
+
+\section{Conclusion and Future Work}
+This study shows that a carefully designed stacking ensemble can improve breast cancer classification performance while also supporting interpretable analysis of feature importance. Using a leakage-aware pipeline on the WDBC dataset, the stacking ensemble produced the strongest overall results on both development-stage cross-validation and the final held-out test set. The gains were not merely numerical: the ensemble also reduced the number of false negatives relative to several individual models, which is especially important in malignant-case detection.
+
+Just as importantly, the feature analyses showed that explanation is not interchangeable across methods. Different models highlighted somewhat different predictors, but worst radius, worst area, worst perimeter, and worst concave points appeared repeatedly across explanation strategies. This suggests that explanation agreement can be treated as an additional source of evidence when interpreting machine learning outputs in clinical settings.
+
+Future work should extend this design in four directions. First, the same workflow should be tested on larger and more heterogeneous breast cancer datasets to assess generalizability. Second, external validation across institutions and imaging or pathology pipelines would provide a stronger test of real-world performance. Third, calibration analysis and decision-threshold optimization should be examined more directly, especially in settings where false negatives carry higher clinical risk. Finally, future studies should evaluate whether consensus-based explanation frameworks can help identify stable biomarkers that remain consistent across populations, modalities, and model families.
+
+\section*{}
+\begin{thebibliography}{00}
+
+\bibitem{b1} American Cancer Society, ``Breast cancer statistics: How common is breast cancer?,'' 2026. [Online]. Available: \url{https://www.cancer.org/cancer/types/breast-cancer/about/how-common-is-breast-cancer.html}. Accessed: Apr. 29, 2026.
+
+\bibitem{b2} National Cancer Institute, ``Cancer stat facts: Female breast cancer,'' SEER Program, 2026. [Online]. Available: \url{https://seer.cancer.gov/statfacts/html/breast.html}. Accessed: Apr. 29, 2026.
+
+\bibitem{b3} N. Al-Azzam and I. Shatnawi, ``Comparing supervised and semi-supervised machine learning models on diagnosing breast cancer,'' \textit{Annals of Medicine and Surgery}, vol. 62, pp. 53--64, 2021, doi: 10.1016/j.amsu.2020.12.043.
+
+\bibitem{b4} Y. Gao, Y. Wang, X. Zhai, X. Wang, Y. Wang, B. Zhao, and S. Liu, ``An assessment of the predictive performance of current machine-learning-based breast cancer risk prediction models: Systematic review,'' \textit{JMIR Public Health and Surveillance}, vol. 8, no. 12, p. e35750, 2022, doi: 10.2196/35750.
+
+\bibitem{b5} A. Jafari, ``Machine-learning methods in detecting breast cancer and related therapeutic issues: A review,'' \textit{Computer Methods in Biomechanics and Biomedical Engineering: Imaging \& Visualization}, vol. 12, no. 1, Art. no. 2299093, 2024, doi: 10.1080/21681163.2023.2299093.
+
+\bibitem{b6} A. La Moglia and K. M. M. Almustafa, ``Breast cancer prediction using machine learning classification algorithms,'' \textit{Intelligence-Based Medicine}, vol. 11, Art. no. 100193, 2025, doi: 10.1016/j.ibmed.2024.100193.
+
+\bibitem{b7} A. Ghasemi, S. Hashtarkhani, D. L. Schwartz, and A. Shaban-Nejad, ``Explainable artificial intelligence in breast cancer detection and risk prediction: A systematic scoping review,'' \textit{Cancer Innovation}, vol. 3, no. 5, p. e136, 2024, doi: 10.1002/cai2.136.
+
+\bibitem{b8} W. H. Wolberg, O. L. Mangasarian, W. N. Street, and N. Street, ``Breast Cancer Wisconsin (Diagnostic)'' [Dataset], UCI Machine Learning Repository, 1993. doi: 10.24432/C5DW2B.
+
+\bibitem{b9} S. Zhou, C. Hu, S. Wei, and X. Yan, ``Breast cancer prediction based on multiple machine learning algorithms,'' \textit{Technology in Cancer Research \& Treatment}, vol. 23, p. 15330338241234791, 2024, doi: 10.1177/15330338241234791.
+
+\bibitem{b10} J. Xiao, M. Mo, Z. Wang, C. Zhou, J. Shen, J. Yuan, Y. He, and Y. Zheng, ``The application and comparison of machine learning models for the prediction of breast cancer prognosis: Retrospective cohort study,'' \textit{JMIR Medical Informatics}, vol. 10, no. 2, p. e33440, 2022, doi: 10.2196/33440.
+
+\bibitem{b11} T. T. Bruny\'e, K. Booth, D. Hendel, K. F. Kerr, H. Shucard, D. L. Weaver, and J. G. Elmore, ``Machine learning classification of diagnostic accuracy in pathologists interpreting breast biopsies,'' \textit{Journal of the American Medical Informatics Association}, vol. 31, no. 3, pp. 552--562, 2024, doi: 10.1093/jamia/ocad232.
+
+\bibitem{b12} R. Rabiei, S. M. Ayyoubzadeh, S. Sohrabei, M. Esmaeili, and A. Atashi, ``Prediction of breast cancer using machine learning approaches,'' \textit{Journal of Biomedical Physics \& Engineering}, vol. 12, no. 3, pp. 297--308, 2022, doi: 10.31661/jbpe.v0i0.2109-1403.
+
+\bibitem{b13} K. M. M. Uddin, N. Biswas, S. T. Rikta, and S. K. Dey, ``Machine learning-based diagnosis of breast cancer utilizing feature optimization technique,'' \textit{Computer Methods and Programs in Biomedicine Update}, vol. 3, Art. no. 100098, 2023, doi: 10.1016/j.cmpbup.2023.100098.
+
+\bibitem{b14} T. Islam, M. A. Sheakh, M. S. Tahosin, M. H. Hena, S. Akash, Y. A. Bin Jardan, G. F. Wondmie, H.-A. Nafidi, and M. Bourhia, ``Predictive modeling for breast cancer classification in the context of Bangladeshi patients by use of machine learning approach with explainable AI,'' \textit{Scientific Reports}, vol. 14, p. 8487, 2024, doi: 10.1038/s41598-024-57740-5.
+
+\bibitem{b15} X. Li, C. Li, H. Wang, L. Jiang, and M. Chen, ``Comparison of radiomics-based machine-learning classifiers for the pretreatment prediction of pathologic complete response to neoadjuvant therapy in breast cancer,'' \textit{PeerJ}, vol. 12, p. e17683, 2024, doi: 10.7717/peerj.17683.
+
+\bibitem{b16} J. Yao, W. Zhou, S. Xu, X. Jia, J. Zhou, X. Chen, and W. Zhan, ``Machine learning-based breast tumor ultrasound radiomics for pre-operative prediction of axillary sentinel lymph node metastasis burden in early-stage invasive breast cancer,'' \textit{Ultrasound in Medicine \& Biology}, vol. 50, no. 2, pp. 229--236, 2024, doi: 10.1016/j.ultrasmedbio.2023.10.004.
+
+\bibitem{b17} D. K. Gurmessa and W. Jimma, ``Explainable machine learning for breast cancer diagnosis from mammography and ultrasound images: A systematic review,'' \textit{BMJ Health \& Care Informatics}, vol. 31, p. e100954, 2024, doi: 10.1136/bmjhci-2023-100954.
+
+\bibitem{b18} F. A. Abdullakutty, Y. Akbari, S. Al-Maadeed, A. B. Bouridane, I. M. Talaat, and R. Hamoudi, ``Histopathology in focus: A review on explainable multi-modal approaches for breast cancer diagnosis,'' \textit{Frontiers in Medicine}, vol. 11, p. 1450103, 2024, doi: 10.3389/fmed.2024.1450103.
+
+\bibitem{b19} Z. Javanmard, S. Z. Shahraki, K. Safari, A. Omidi, S. Raoufi, M. Rajabi, M. E. Akbari, and M. Aria, ``Artificial intelligence in breast cancer survival prediction: A comprehensive systematic review and meta-analysis,'' \textit{Frontiers in Oncology}, vol. 14, p. 1420328, 2025, doi: 10.3389/fonc.2024.1420328.
+
+\bibitem{b20} A. Rezazadeh, Y. Jafarian, and A. Kord, ``Explainable ensemble machine learning for breast cancer diagnosis based on ultrasound image texture features,'' \textit{Forecasting}, vol. 4, no. 1, pp. 262--274, 2022, doi: 10.3390/forecast4010015.
+
+\end{thebibliography}
+
+\end{document}
